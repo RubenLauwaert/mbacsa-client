@@ -32,3 +32,23 @@ export function extractWebID(resourceUri:string):string{
   const podName = extractPathToPod(resourceUri);
   return podName + WEBID_POSTFIX;
 }
+
+export function retrieveMintLocationFromWebId(webId: string):string{
+  const podServerUri = extractPathToPodServer(webId);
+  return podServerUri + ENDPOINT_MINT
+}
+
+export function retrieveDischargeLocationFromWebId(webId: string):string{
+  const podServerUri = extractPathToPodServer(webId);
+  return podServerUri + ENDPOINT_DISCHARGE
+}
+
+export function retrievePublicKeyLocationFromWebId(webId: string):string{
+  const podServerUri = extractPathToPodServer(webId);
+  return podServerUri + ENDPOINT_DISCHARGE_KEY
+}
+
+export function retrieveRevocationLocationFromWebId(webId: string):string{
+  const podServerUri = extractPathToPodServer(webId);
+  return podServerUri + ENDPOINT_REVOKE
+}

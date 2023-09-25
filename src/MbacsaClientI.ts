@@ -14,7 +14,7 @@ export interface MbacsaClientI {
    * @param dpop - DPoP token information.
    * @returns A promise that resolves with the response from the middleware.
    */
-  mintDelegationToken(mintURI: string, requestBody: MintRequest, dpop: DPoPInfo): Promise<MintResponse>;
+  mintDelegationToken(minter: WebID, requestBody: MintRequest, dpop: DPoPInfo): Promise<MintResponse>;
 
   /**
    * Discharge a delegation token (macaroon) using the provided discharge URI.
@@ -23,7 +23,7 @@ export interface MbacsaClientI {
    * @param dpop - DPoP token information.
    * @returns A promise that resolves with the response from the middleware.
    */
-  dischargeDelegationToken(dischargeURI: string, requestBody: DischargeRequest, dpop: DPoPInfo): Promise<any>;
+  dischargeDelegationToken(dischargee: WebID, requestBody: DischargeRequest, dpop: DPoPInfo): Promise<any>;
 
 
   /**
@@ -49,7 +49,7 @@ export interface MbacsaClientI {
    * @param dpop - DPoP token information.
    * @returns A promise that resolves with the response from the middleware.
    */
-  revokeDelegationToken(revocationURI: string, requestBody: RevocationRequest, dpop: DPoPInfo): Promise<any>;
+  revokeDelegationToken(revocationInfo: RevocationRequest, dpop: DPoPInfo): Promise<any>;
 
   /**
    * Access a resource using a delegation token.
@@ -57,5 +57,5 @@ export interface MbacsaClientI {
    * @param serializedMacaroon - The serialized delegation token (Macaroon).
    * @returns A promise that resolves with the response from the middleware.
    */
-  accessWithDelegationToken(resourceURI: string, serializedMacaroon: string): Promise<any>;
+  accessWithDelegationToken(resourceURI: string, serializedMacaroons: Array<string>): Promise<any>;
 }

@@ -21,7 +21,7 @@ export interface PublicKeyDischargeRequest {
 export interface RevocationRequest {
 
   serializedMacaroons: Array<string>,
-  resourceOwner: string,
-  revoker: string,
-  revokee: string
+  resourceOwner: WebID,
+  revoker: WebID,
+  revokee: WebID
 }

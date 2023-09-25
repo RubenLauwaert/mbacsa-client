@@ -3,19 +3,19 @@ import {MintRequest, DischargeRequest, PublicKeyDischargeRequest, RevocationRequ
 import { buildAuthenticatedFetch} from '@inrupt/solid-client-authn-core';
 import fetch  from 'node-fetch'
 import NodeRSA from 'node-rsa'
-import macaroons from 'macaroons.js'
+import macaroons, { MacaroonsDeSerializer } from 'macaroons.js'
 import { v4 as uuidv4 } from 'uuid';
 import { MbacsaClientI } from "./MbacsaClientI";
 import { DischargeResponse, MintResponse, PublicDischargeKeyResponse } from "./types/Responses";
 import { Macaroon, MacaroonsBuilder } from "macaroons.js";
-import { ENDPOINT_DISCHARGE, ENDPOINT_DISCHARGE_KEY, extractPathToPod, extractPathToPodServer } from "./Util";
+import { retrieveDischargeLocationFromWebId, retrieveMintLocationFromWebId, retrievePublicKeyLocationFromWebId, retrieveRevocationLocationFromWebId } from "./Util";
 import { jwk2pem } from "pem-jwk";
 
 
 
 export class MbacsaClient implements MbacsaClientI {
 
-
+  public constructor(){}
 
   private async authenticatedDPoPFetch(dpopInfo:DPoPInfo, url:string, init:RequestInit):Promise<Response>{
     const {accessToken, dpopKey} = dpopInfo;
@@ -24,8 +24,9 @@ export class MbacsaClient implements MbacsaClientI {
   }
 
 
-  public async mintDelegationToken(mintURI: string, requestBody: MintRequest, dpop: DPoPInfo): Promise<MintResponse> {
-    const mintResponse = await this.authenticatedDPoPFetch(dpop,mintURI,{
+  public async mintDelegationToken(minter: WebID, requestBody: MintRequest, dpop: DPoPInfo): Promise<MintResponse> {
+    const mintLocation = retrieveMintLocationFromWebId(minter);
+    const mintResponse = await this.authenticatedDPoPFetch(dpop,mintLocation,{
       method: 'POST',
       headers: {
         'content-type': 'application/json'
@@ -36,8 +37,9 @@ export class MbacsaClient implements MbacsaClientI {
     const mintData = await mintResponse.json()
     return mintData
   }
-  public async dischargeDelegationToken(dischargeURI: string, requestBody: DischargeRequest, dpop: DPoPInfo): Promise<DischargeResponse> {
-    const dischargeResponse = await this.authenticatedDPoPFetch(dpop, dischargeURI, {
+  public async dischargeDelegationToken(dischargee: WebID, requestBody: DischargeRequest, dpop: DPoPInfo): Promise<DischargeResponse> {
+    const dischargeLocation = retrieveDischargeLocationFromWebId(dischargee);
+    const dischargeResponse = await this.authenticatedDPoPFetch(dpop, dischargeLocation, {
       method: 'POST',
       headers: {
         'content-type': 'application/json'
@@ -49,9 +51,9 @@ export class MbacsaClient implements MbacsaClientI {
   }
 
   public async getPublicDischargeKey(subject: WebID): Promise<PublicDischargeKeyResponse> {
-    const dischargeKeyEndpoint = extractPathToPodServer(subject) + ENDPOINT_DISCHARGE_KEY
+    const publicDischargeKeyLocation = retrievePublicKeyLocationFromWebId(subject);
     const requestBody:PublicKeyDischargeRequest = {subjectToRetrieveKeyFrom: subject};
-    const response = await fetch(dischargeKeyEndpoint, 
+    const response = await fetch(publicDischargeKeyLocation, 
       {method: 'POST', 
        headers: { 'Content-Type': 'application/json'}, 
        body: JSON.stringify(requestBody)});
@@ -65,7 +67,7 @@ export class MbacsaClient implements MbacsaClientI {
 
     // Generate encrypted Third-Party caveat to discharge delegatee
     const dischargeKeyDelegateeJWK = await this.getPublicDischargeKey(delegatee);
-    const dischargeLocation = extractPathToPodServer(delegatee) + ENDPOINT_DISCHARGE;
+    const dischargeLocation = retrieveDischargeLocationFromWebId(delegatee);
     const caveatKey = uuidv4();
     const predicate = `agent = ${delegatee}`;
     const caveatId = caveatKey + "::" + predicate;
@@ -77,18 +79,56 @@ export class MbacsaClient implements MbacsaClientI {
     const attenuatedMacaroon = macaroons.MacaroonsBuilder.modify(originalMacaroon)
       .add_third_party_caveat(dischargeLocation,caveatKey,encryptedCaveatId);
 
-    // TODO : add given mode as first-party caveat
     if(mode){
       attenuatedMacaroon.add_first_party_caveat(`mode = ${mode}`)
     }
     return attenuatedMacaroon.getMacaroon();
   }
 
-  public async revokeDelegationToken(revocationURI: string, requestBody: RevocationRequest, dpop: DPoPInfo): Promise<any> {
-    throw new Error("Method not implemented.");
+  public async revokeDelegationToken(revocationInfo: RevocationRequest, dpop: DPoPInfo): Promise<any> {
+    const {resourceOwner} = revocationInfo;
+    const revocationLocation = retrieveRevocationLocationFromWebId(resourceOwner);
+    // Prepare discharge macaroons
+    const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(revocationInfo.serializedMacaroons);
+    revocationInfo.serializedMacaroons = preparedSerializedMacaroons;
+    const revocationResponse = await this.authenticatedDPoPFetch(dpop, revocationLocation, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(revocationInfo)
+    });
+    const data = await revocationResponse.json();
+    return data;
   }
-  public async accessWithDelegationToken(resourceURI: string, serializedMacaroon: string): Promise<any> {
-    throw new Error("Method not implemented.");
+
+  public async accessWithDelegationToken(resourceURI: string, serializedMacaroons: Array<string>): Promise<any> {
+
+    // Prepare discharge macaroons for request
+    const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
+
+    const resource = await fetch(resourceURI,{
+      method: 'GET',
+      headers: {
+        'authorization': 'macaroon',
+        'macaroon': preparedSerializedMacaroons.toString()
+  
+      }
+    })
+    return await resource.text();
+  }
+
+  private prepareMacaroonsForRequest(serializedMacaroons: Array<string>):Array<string>{
+    const [serializedRootMacaroon,...serializedDischargeMacaroons] = serializedMacaroons;
+    const rootMacaroon = macaroons.MacaroonsDeSerializer.deserialize(serializedRootMacaroon);
+    const preparedSerializedDischargeMacaroons = serializedDischargeMacaroons.map((serializedDischargeMacaroon) => {
+      const dischargeMacaroon = macaroons.MacaroonsDeSerializer.deserialize(serializedDischargeMacaroon);
+      const preparedDischargeMacaroon = macaroons.MacaroonsBuilder.modify(rootMacaroon)
+        .prepare_for_request(dischargeMacaroon)
+        .getMacaroon();
+      return macaroons.MacaroonsSerializer.serialize(preparedDischargeMacaroon);
+    })
+    return [serializedRootMacaroon,...preparedSerializedDischargeMacaroons]
   }
 
 
