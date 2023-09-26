@@ -22,14 +22,10 @@ const credentialsAlice = await CredentialsGenerator.generateCredentials("Alice@e
 const dpopDataAlice = await DPoPGenerator.generateDPoPAccessToken(credentialsAlice);
 // Generate DPOP Credentials for Jane
 const credentialsJane = await CredentialsGenerator.generateCredentials("Jane@example.com","Jane");
-const dpopDataJane = await DPoPGenerator.generateDPoPAccessToken(credentialsAlice);
+const dpopDataJane = await DPoPGenerator.generateDPoPAccessToken(credentialsJane);
 
 
-
-
-
-
-const counter = 10;
+const counter = 3;
 for(let i=0;i < counter ; i++){
     // Mint a macaroon for Alice for Bob's first post
   const mintRequest:MintRequest = {
@@ -49,6 +45,7 @@ for(let i=0;i < counter ; i++){
   const {dischargeMacaroon: dischargeMacaroonAlice} = await mbacsaClient.dischargeDelegationToken(POD_SERVER_1_BASE_PATH + ENDPOINT_DISCHARGE,dischargeRequest,dpopDataAlice)
   // console.log(macaroons.MacaroonsDeSerializer.deserialize(dischargeMacaroon).inspect())
 
+
   // Delegate Access To Jane
   const attenuatedMacaroonJane = await mbacsaClient.delegateAccessTo(deserializedMacaroonAlice,"http://localhost:3000/Jane/profile/card#me")
   //console.log(attenuatedMacaroonJane.inspect())
@@ -60,8 +57,8 @@ for(let i=0;i < counter ; i++){
 
   // Jane accesses Bob's post via permissions delegated by Alice
 
-  const postData = await mbacsaClient.accessWithDelegationToken("http://localhost:3000/Bob/social/post1.txt",[attenuatedMacaroonJane.serialize(),dischargeMacaroonAlice,dischargeMacaroonJane])
-  console.log(postData)
+  // const postData = await mbacsaClient.accessWithDelegationToken("http://localhost:3000/Bob/social/post1.txt",[attenuatedMacaroonJane.serialize(),dischargeMacaroonAlice,dischargeMacaroonJane])
+  // console.log(postData)
 
   // Alice revokes Jane's macaroon, Alice has delegated permissions to Jane, so request should be authorized
 
@@ -75,5 +72,4 @@ for(let i=0;i < counter ; i++){
   const revocationResponse = await mbacsaClient.revokeDelegationToken(revocationRequestAlice, dpopDataAlice);
   console.log(revocationResponse)
 }
-
 
