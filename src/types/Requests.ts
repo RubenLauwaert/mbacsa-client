@@ -3,19 +3,21 @@ import { RSA_JWK } from "pem-jwk";
 
 export interface MintRequest {
   resourceURI: string,
-  requestor: string,
+  requestor: WebID,
   requestedAccessMode: string,
   dischargeKey: RSA_JWK;
+  mode: string
 }
 
 export interface DischargeRequest {
   
-  serializedMacaroon: string,
-  agentToDischarge: string
+  serializedRootMacaroon: string,
+  agentToDischarge: WebID,
+  mode?: string;
 }
 
 export interface PublicKeyDischargeRequest {
-  subjectToRetrieveKeyFrom: string
+  subjectToRetrieveKeyFrom: WebID
 }
 
 export interface RevocationRequest {

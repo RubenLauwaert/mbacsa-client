@@ -1,13 +1,13 @@
 import { DPoPInfo } from "./dpop/DPoPGenerator";
 import {MintRequest, DischargeRequest, PublicKeyDischargeRequest, RevocationRequest} from './types/Requests'
-import { buildAuthenticatedFetch} from '@inrupt/solid-client-authn-core';
+import { buildAuthenticatedFetch } from '@inrupt/solid-client-authn-core';
 import fetch  from 'node-fetch'
 import NodeRSA from 'node-rsa'
-import macaroons, { MacaroonsDeSerializer } from 'macaroons.js'
+import macaroons from 'macaroons.js'
 import { v4 as uuidv4 } from 'uuid';
 import { MbacsaClientI } from "./MbacsaClientI";
 import { DischargeResponse, MintResponse, PublicDischargeKeyResponse } from "./types/Responses";
-import { Macaroon, MacaroonsBuilder } from "macaroons.js";
+import { Macaroon } from "macaroons.js";
 import { retrieveDischargeLocationFromWebId, retrieveMintLocationFromWebId, retrievePublicKeyLocationFromWebId, retrieveRevocationLocationFromWebId } from "./Util";
 import { jwk2pem } from "pem-jwk";
 
@@ -110,6 +110,7 @@ export class MbacsaClient implements MbacsaClientI {
     const resource = await fetch(resourceURI,{
       method: 'GET',
       headers: {
+        'content-type': "application/json",
         'authorization': 'macaroon',
         'macaroon': preparedSerializedMacaroons.toString()
   
@@ -117,6 +118,7 @@ export class MbacsaClient implements MbacsaClientI {
     })
     return await resource.text();
   }
+
 
   private prepareMacaroonsForRequest(serializedMacaroons: Array<string>):Array<string>{
     const [serializedRootMacaroon,...serializedDischargeMacaroons] = serializedMacaroons;

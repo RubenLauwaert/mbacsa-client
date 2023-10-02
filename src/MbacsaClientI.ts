@@ -19,4 +19,5 @@ export interface MbacsaClientI {
   revokeDelegationToken(revocationInfo: RevocationRequest, dpop: DPoPInfo): Promise<RevocationResponse>;
 
   accessWithDelegationToken(resourceURI: string, serializedMacaroons: Array<string>): Promise<any>;
+
 }
