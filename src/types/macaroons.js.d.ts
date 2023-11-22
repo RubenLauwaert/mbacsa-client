@@ -14,6 +14,7 @@ declare module 'macaroons.js' {
   class MacaroonsBuilder {
     "use strict": any;
     constructor(location:string, secretKey:string, identifier:string);
+    constructor(macaroon:Macaroon);
     static modify(macaroon: Macaroon): MacaroonsBuilder;
     getMacaroon(): Macaroon;
     create(location: string, secretKey: string, identifier: string): Macaroon;

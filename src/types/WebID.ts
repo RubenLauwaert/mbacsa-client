@@ -1,3 +1,3 @@
-type WebID = string;
+export type WebID = string;
 
 

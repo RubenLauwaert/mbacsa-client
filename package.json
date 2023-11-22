@@ -1,15 +1,19 @@
 {
   "name": "mbacsa-client",
   "type": "module",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.0.3",
+  "description": "A client for interacting with the MBACSA Middleware, running on a Community Solid Server (CSS)",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc -w",
+    "build": "tsc",
     "start": "nodemon --experimental-specifier-resolution=node dist/index.js"
   },
-  "keywords": [],
+  "types": "dist/index.d.ts",
+  "files": ["/dist"],
+  "keywords": [
+    "MBACSA",
+    "CSS"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -26,5 +30,6 @@
     "node-rsa": "^1.1.1",
     "pem-jwk": "^2.0.0",
     "uuid": "^9.0.0"
-  }
+  },
+  "prepublish": true
 }

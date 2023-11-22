@@ -1,5 +1,7 @@
 import { createDpopHeader, generateDpopKeyPair, buildAuthenticatedFetch, KeyPair,  } from '@inrupt/solid-client-authn-core';
 import fetch from 'node-fetch'
+
+const DPOP_ENDPOINT = ".oidc/token"
 export interface Credentials {
   id:string,
   secret:string
@@ -16,9 +18,11 @@ interface AccessTokenResponse {
 }
 
 
+
+
 export class DPoPGenerator {
 
-  public static async generateDPoPAccessToken(dpopInput:Credentials):Promise<DPoPInfo>{
+  public static async generateDPoPAccessToken(podServerUri:string, dpopInput:Credentials):Promise<DPoPInfo>{
     const {id, secret} = dpopInput;
 
     // A key pair is needed for encryption.
@@ -30,7 +34,7 @@ export class DPoPGenerator {
     // This URL can be found by looking at the "token_endpoint" field at
     // http://localhost:3000/.well-known/openid-configuration
     // if your server is hosted at http://localhost:3000/.
-    const tokenUrl = 'http://localhost:3000/.oidc/token';
+    const tokenUrl = podServerUri + DPOP_ENDPOINT;
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
@@ -49,8 +53,8 @@ export class DPoPGenerator {
     // This is the Access token that will be used to do an authenticated request to the server.
     // The JSON also contains an "expires_in" field in seconds,
     // which you can use to know when you need request a new Access token.
-    const { access_token: accessToken } = await response.json() as AccessTokenResponse;
-    
+    const dpopToken = await response.json();
+    const {access_token: accessToken} = dpopToken as AccessTokenResponse;
 
     return {
       accessToken: accessToken,
