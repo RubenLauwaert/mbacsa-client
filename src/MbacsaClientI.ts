@@ -4,6 +4,7 @@ import {MintRequest, DischargeRequest, PublicKeyDischargeRequest, RevocationRequ
 import { DischargeResponse, MintResponse, PublicDischargeKeyResponse, RevocationResponse } from "./types/Responses";
 import { AccessMode } from "./Util";
 import { WebID } from "./types/WebID";
+import { RSA_JWK } from "pem-jwk";
 
 /**
  * Interface for interacting with MBACSA's Delegation Token API.
@@ -16,9 +17,9 @@ export interface MbacsaClientI {
 
   getPublicDischargeKey(subject: WebID):Promise<PublicDischargeKeyResponse>;
 
-  delegateAccessTo(serializedMacaroon: string, delegatee: WebID, mode?: string): Promise<string>;
+  delegateAccessTo(serializedMacaroon: string, delegatee: WebID, pdk:RSA_JWK): Promise<string>;
 
-  revokeDelegationToken(revocationInfo: RevocationRequest, dpop: DPoPInfo): Promise<RevocationResponse>;
+  revokeDelegationToken(revoker:WebID, revokee:WebID, serializedMacaroons:Array<string>): Promise<RevocationResponse>;
 
   accessWithDelegationToken(resourceURI: string, serializedMacaroons: Array<string>): Promise<any>;
 

@@ -9,7 +9,7 @@ import { MbacsaClientI } from "./MbacsaClientI.js";
 import { DischargeResponse, MintResponse, PublicDischargeKeyResponse } from "./types/Responses.js";
 import { Macaroon } from "macaroons.js";
 import { extractModeFromMacaroon, getFollowingDelegationPosition, getThirdPartyCIDLastInChain, retrieveDischargeLocationFromWebId, retrieveMintLocationFromWebId, retrievePublicKeyLocationFromWebId, retrieveRevocationLocationFromURI } from "./Util.js";
-import { jwk2pem } from "pem-jwk";
+import { RSA_JWK, jwk2pem } from "pem-jwk";
 import { CredentialsGenerator } from "./dpop/CredentialsGenerator.js";
 import { WebID} from './types/WebID.js'
 
@@ -79,7 +79,7 @@ export class MbacsaClient implements MbacsaClientI {
   }
 
 
-  public async delegateAccessTo(serializedMacaroon: string, delegatee: WebID): Promise<string> {
+  public async delegateAccessTo(serializedMacaroon: string, delegatee: WebID, pdk:RSA_JWK): Promise<string> {
 
     // Deserialize macaroon
     const originalMacaroon = macaroons.MacaroonsDeSerializer.deserialize(serializedMacaroon);
@@ -87,8 +87,7 @@ export class MbacsaClient implements MbacsaClientI {
     const mode = extractModeFromMacaroon(originalMacaroon);
     // Get following position
     const delegationPosition = getFollowingDelegationPosition(originalMacaroon);
-    // Generate encrypted Third-Party caveat to discharge delegatee
-    const dischargeKeyDelegateeJWK = await this.getPublicDischargeKey(delegatee);
+    // Create third-party caveat id
     const dischargeLocation = retrieveDischargeLocationFromWebId(delegatee);
     const caveatKey = uuidv4();
     const agentPredicate = `agent = ${delegatee}`;
@@ -98,7 +97,7 @@ export class MbacsaClient implements MbacsaClientI {
         + "::" + positionPredicate;
     // Encrypt caveat with public discharge key of delegatee
     const rsa = new NodeRSA();
-    const dischargeKey = rsa.importKey(jwk2pem(dischargeKeyDelegateeJWK.dischargeKey));
+    const dischargeKey = rsa.importKey(jwk2pem(pdk));
     const encryptedCaveatId = dischargeKey.encrypt(caveatId,'base64').toString();
     // Attenuate original macaroon
 
@@ -108,21 +107,23 @@ export class MbacsaClient implements MbacsaClientI {
     return attenuatedMacaroon.getMacaroon().serialize();
   }
 
-  public async revokeDelegationToken(revocationInfo: RevocationRequest, dpop: DPoPInfo): Promise<any> {
-    const {serializedMacaroons} = revocationInfo
+  public async revokeDelegationToken(revoker:WebID, revokee:WebID, serializedMacaroons:Array<string>): Promise<any> {
     // Retrieve revocationLocation from root macaroon
     const rootMacaroon = macaroons.MacaroonsDeSerializer.deserialize(serializedMacaroons[0]);
     const revocationLocation = retrieveRevocationLocationFromURI(rootMacaroon.location);
      // Prepare discharge macaroons
     const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
-    revocationInfo.serializedMacaroons = preparedSerializedMacaroons;
     
-    const revocationResponse = await this.authenticatedDPoPFetch(dpop, revocationLocation, {
+    const revocationResponse = await fetch(revocationLocation, {
       method: 'POST',
       headers: {
         'content-type': 'application/json'
       },
-      body: JSON.stringify(revocationInfo)
+      body: JSON.stringify({
+        revoker: revoker,
+        revokee: revokee,
+        serializedMacaroons: preparedSerializedMacaroons
+      })
     });
     const data = await revocationResponse.json();
     return data;
