@@ -12,6 +12,7 @@ import { extractModeFromMacaroon, getFollowingDelegationPosition, getThirdPartyC
 import { RSA_JWK, jwk2pem } from "pem-jwk";
 import { CredentialsGenerator } from "./dpop/CredentialsGenerator.js";
 import { WebID} from './types/WebID.js'
+import { timeStamp } from "console";
 
 
 
@@ -134,15 +135,19 @@ export class MbacsaClient implements MbacsaClientI {
     try {
       // Prepare discharge macaroons for request
       const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
-    
+      const [serializedRootMacaroon,...serializedPreparedDischargeMacaroons] = preparedSerializedMacaroons
       const resource = await fetch(resourceURI,{
-        method: 'GET',
+        method: 'POST',
         headers: {
           'content-type': "application/json",
           'authorization': 'macaroon',
-          'macaroon': preparedSerializedMacaroons.toString()
+          'macaroon': serializedRootMacaroon
 
         },
+        body: JSON.stringify({
+          serializedDischargeMacaroons: serializedPreparedDischargeMacaroons,
+          body: JSON.stringify({update: "Updated @ : " + new Date().getTime()})
+        })
       })
     return await resource.text();
     } catch (error) {
