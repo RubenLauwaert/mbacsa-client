@@ -1,7 +1,7 @@
 {
   "name": "mbacsa-client",
   "type": "module",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A client for interacting with the MBACSA Middleware, running on a Community Solid Server (CSS)",
   "main": "dist/index.js",
   "scripts": {
@@ -9,7 +9,9 @@
     "start": "nodemon --experimental-specifier-resolution=node dist/index.js"
   },
   "types": "dist/index.d.ts",
-  "files": ["/dist"],
+  "files": [
+    "/dist"
+  ],
   "keywords": [
     "MBACSA",
     "CSS"
@@ -19,8 +21,8 @@
   "devDependencies": {
     "@types/node": "^20.5.9",
     "nodemon": "^3.0.1",
-    "typescript": "^5.2.2",
-    "ts-node": "^10.4.0"
+    "ts-node": "^10.4.0",
+    "typescript": "^5.2.2"
   },
   "dependencies": {
     "@inrupt/solid-client-authn-core": "^1.17.1",

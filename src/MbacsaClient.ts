@@ -130,19 +130,25 @@ export class MbacsaClient implements MbacsaClientI {
   }
 
   public async accessWithDelegationToken(resourceURI: string, serializedMacaroons: Array<string>): Promise<any> {
-    // Prepare discharge macaroons for request
-    const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
-  
-    const resource = await fetch(resourceURI,{
-      method: 'GET',
-      headers: {
-        'content-type': "application/json",
-        'authorization': 'macaroon',
-        'macaroon': preparedSerializedMacaroons.toString()
 
-      },
-    })
+    try {
+      // Prepare discharge macaroons for request
+      const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
+    
+      const resource = await fetch(resourceURI,{
+        method: 'GET',
+        headers: {
+          'content-type': "application/json",
+          'authorization': 'macaroon',
+          'macaroon': preparedSerializedMacaroons.toString()
+
+        },
+      })
     return await resource.text();
+    } catch (error) {
+      console.log("[MbacsaClient Error]: " + error)
+    }
+  
   }
   
   public async getResource(resourceURI: string, serializedMacaroons: string[]): Promise<any> {
