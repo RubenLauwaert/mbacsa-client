@@ -2,7 +2,8 @@ import { Macaroon } from "macaroons.js";
 import { DPoPInfo } from "./dpop/DPoPGenerator";
 import {MintRequest, DischargeRequest, PublicKeyDischargeRequest, RevocationRequest} from './types/Requests';
 import { DischargeResponse, MintResponse, PublicDischargeKeyResponse, RevocationResponse } from "./types/Responses";
-import { AccessMode } from "./Util";
+import {
+   AccessMode } from "./Util";
 import { WebID } from "./types/WebID";
 import { RSA_JWK } from "pem-jwk";
 

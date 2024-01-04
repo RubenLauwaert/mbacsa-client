@@ -1,36 +1,38 @@
-import { MbacsaClient } from './MbacsaClient.js';
-import { extractPathToPodServer } from './Util.js';
+
 
 export {MbacsaClient} from './MbacsaClient.js'
 
 
-// MbacsaClient
-const client = new MbacsaClient()
+// import { MbacsaClient } from './MbacsaClient.js';
+// import { extractPathToPodServer } from './Util.js';
 
-// target
-const target = 'http://localhost:3000/Alice/social/post1.json';
+// // MbacsaClient
+// const client = new MbacsaClient()
 
-// minter
-const minter = { webId: "http://localhost:3000/Bob/profile/card#me",
-                email: "Bob@example.com",
-                password: "Bob"}
+// // target
+// const target = 'http://localhost:3000/Alice/social/post1.json';
 
-// Retrieve discharge key for minter
-const dKeyAgent2 = await client.getPublicDischargeKey(minter.webId);
-// Minter mints macaroon
-const dpopKeyMinter = await client.retrieveDPoPToken(extractPathToPodServer(minter.webId) + "/",minter.email,minter.password);
-const mintedMacaroon  = await client.mintDelegationToken(minter.webId,{
-  dischargeKey: dKeyAgent2.dischargeKey,
-  mode: 'write',
-  requestor: minter.webId,
-  resourceURI: target
-},dpopKeyMinter);
+// // minter
+// const minter = { webId: "http://localhost:3000/Bob/profile/card#me",
+//                 email: "Bob@example.com",
+//                 password: "Bob"}
 
-// Minter gets discharge proof
+// // Retrieve discharge key for minter
+// const dKeyAgent2 = await client.getPublicDischargeKey(minter.webId);
+// // Minter mints macaroon
+// const dpopKeyMinter = await client.retrieveDPoPToken(extractPathToPodServer(minter.webId) + "/",minter.email,minter.password);
+// const mintedMacaroon  = await client.mintDelegationToken(minter.webId,{
+//   dischargeKey: dKeyAgent2.dischargeKey,
+//   mode: 'write',
+//   requestor: minter.webId,
+//   resourceURI: target
+// },dpopKeyMinter);
 
-const dischargeProofMinter = await client.dischargeLastThirdPartyCaveat(mintedMacaroon.mintedMacaroon,minter.webId,dpopKeyMinter);
+// // Minter gets discharge proof
 
-// Minter accesses corresponding resource via macaroon
-const post1Alice = await client.accessWithDelegationToken(target,[mintedMacaroon.mintedMacaroon,dischargeProofMinter.dischargeMacaroon])
+// const dischargeProofMinter = await client.dischargeLastThirdPartyCaveat(mintedMacaroon.mintedMacaroon,minter.webId,dpopKeyMinter);
 
-console.log(post1Alice)
+// // Minter accesses corresponding resource via macaroon
+// const post1Alice = await client.accessWithDelegationToken(target,[mintedMacaroon.mintedMacaroon,dischargeProofMinter.dischargeMacaroon])
+
+// console.log(post1Alice)
