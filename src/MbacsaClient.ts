@@ -156,37 +156,37 @@ export class MbacsaClient implements MbacsaClientI {
   
   }
   
-  public async getResource(resourceURI: string, serializedMacaroons: string[]): Promise<any> {
-    // Prepare discharge macaroons for request
-    const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
+  // public async getResource(resourceURI: string, serializedMacaroons: string[]): Promise<any> {
+  //   // Prepare discharge macaroons for request
+  //   const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
 
-    // Make request
-    const resource = await fetch(resourceURI,{
-      method: 'GET',
-      headers: {
-        'content-type': "application/json",
-        'authorization': 'macaroon',
-        'macaroon': preparedSerializedMacaroons.toString()
-      },
-    })
-    return await resource.text();
-  }
+  //   // Make request
+  //   const resource = await fetch(resourceURI,{
+  //     method: 'GET',
+  //     headers: {
+  //       'content-type': "application/json",
+  //       'authorization': 'macaroon',
+  //       'macaroon': preparedSerializedMacaroons.toString()
+  //     },
+  //   })
+  //   return await resource.text();
+  // }
 
-  public async appendToResource(resourceURI: string, serializedMacaroons: string[], data: object) : Promise<any> {
-    // Prepare discharge macaroons for request
-    const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
-    // Make request
-    const response = await fetch(resourceURI,{
-      method: 'PUT',
-      headers: {
-        'content-type': "application/json",
-        'authorization': 'macaroon',
-        'macaroon': preparedSerializedMacaroons.toString()
-      },
-      data: JSON.stringify(data)
-    })
-    return await response.text();
-  }
+  // public async appendToResource(resourceURI: string, serializedMacaroons: string[], data: object) : Promise<any> {
+  //   // Prepare discharge macaroons for request
+  //   const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
+  //   // Make request
+  //   const response = await fetch(resourceURI,{
+  //     method: 'PUT',
+  //     headers: {
+  //       'content-type': "application/json",
+  //       'authorization': 'macaroon',
+  //       'macaroon': preparedSerializedMacaroons.toString()
+  //     },
+  //     data: JSON.stringify(data)
+  //   })
+  //   return await response.text();
+  // }
 
 
   public async retrieveDPoPToken(podServerUri:string, email:string, password:string):Promise<DPoPInfo> {

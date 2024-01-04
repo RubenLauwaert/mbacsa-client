@@ -12,6 +12,8 @@ import { RSA_JWK } from "pem-jwk";
  */
 export interface MbacsaClientI {
 
+  retrieveDPoPToken(podServerUri:string, email:string, password:string):Promise<DPoPInfo>;
+
   mintDelegationToken(minter: WebID, requestBody: MintRequest, dpop: DPoPInfo): Promise<MintResponse>;
 
   dischargeLastThirdPartyCaveat(serializedMacaroon:string, dischargee:WebID, dpop: DPoPInfo):Promise<DischargeResponse>;
@@ -23,7 +25,5 @@ export interface MbacsaClientI {
   revokeDelegationToken(revoker:WebID, revokee:WebID, serializedMacaroons:Array<string>): Promise<RevocationResponse>;
 
   accessWithDelegationToken(resourceURI: string, serializedMacaroons: Array<string>): Promise<any>;
-
-  getResource(resourceURI: string, serializedMacaroons: Array<string>) : Promise<any>
 
 }
