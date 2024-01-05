@@ -1,18 +1,16 @@
 import { DPoPGenerator, DPoPInfo } from "./dpop/DPoPGenerator.js";
-import {MintRequest, DischargeRequest, PublicKeyDischargeRequest, RevocationRequest} from './types/Requests.js'
+import {MintRequest, PublicKeyDischargeRequest } from './types/Requests.js'
 import { buildAuthenticatedFetch } from '@inrupt/solid-client-authn-core';
 import fetch  from 'node-fetch'
 import NodeRSA from 'node-rsa'
-import macaroons, { MacaroonsConstants, MacaroonsDeSerializer } from 'macaroons.js'
+import macaroons from 'macaroons.js'
 import { v4 as uuidv4 } from 'uuid';
 import { MbacsaClientI } from "./MbacsaClientI.js";
 import { DischargeResponse, MintResponse, PublicDischargeKeyResponse } from "./types/Responses.js";
-import { Macaroon } from "macaroons.js";
 import { extractModeFromMacaroon, getFollowingDelegationPosition, getThirdPartyCIDLastInChain, retrieveDischargeLocationFromWebId, retrieveMintLocationFromWebId, retrievePublicKeyLocationFromWebId, retrieveRevocationLocationFromURI } from "./Util.js";
 import { RSA_JWK, jwk2pem } from "pem-jwk";
 import { CredentialsGenerator } from "./dpop/CredentialsGenerator.js";
 import { WebID} from './types/WebID.js'
-import { timeStamp } from "console";
 
 
 
@@ -30,7 +28,27 @@ export class MbacsaClient implements MbacsaClientI {
     return await authenticatedFetch(url,init);
   }
 
+  /**
+   * Retrieves a DPoP (Demonstration of Proof-of-Possession) token.
+   * @param podServerUri The URI of the pod server.
+   * @param email The email of the user.
+   * @param password The password of the user.
+   * @returns A promise resolving to DPoPInfo.
+   */
+    public async retrieveDPoPToken(podServerUri:string, email:string, password:string):Promise<DPoPInfo> {
+      const credentials = await CredentialsGenerator.generateCredentials(podServerUri,email, password);
+      const dpopInfo = await DPoPGenerator.generateDPoPAccessToken(podServerUri,credentials);
+      return dpopInfo;
+    }
 
+  
+  /**
+   * Requests to mint a delegation token.
+   * @param minter The WebID of the entity minting the token.
+   * @param requestBody The request body containing minting details.
+   * @param dpop The DPoP token info.
+   * @returns A promise resolving to a MintResponse.
+   */
   public async mintDelegationToken(minter: WebID, requestBody: MintRequest, dpop: DPoPInfo): Promise<MintResponse> {
     const mintLocation = retrieveMintLocationFromWebId(minter);
     const mintResponse = await this.authenticatedDPoPFetch(dpop,mintLocation,{
@@ -46,7 +64,13 @@ export class MbacsaClient implements MbacsaClientI {
     return mintData
   }
 
-
+  /**
+   * Discharges the last third-party caveat of a macaroon.
+   * @param serializedMacaroon The serialized macaroon to be discharged.
+   * @param dischargee The WebID of the entity to be discharged.
+   * @param dpop The DPoP token info for authenticating the dischargee.
+   * @returns A promise resolving to a DischargeResponse.
+   */
   public async dischargeLastThirdPartyCaveat(serializedMacaroon:string, dischargee:WebID, dpop: DPoPInfo):Promise<DischargeResponse>{
 
     // Get last third-party caveat identifier
@@ -67,6 +91,11 @@ export class MbacsaClient implements MbacsaClientI {
     return dischargeData;
   }
 
+  /**
+   * Retrieves the public discharge key of an agent.
+   * @param subject The WebID of the agent.
+   * @returns A promise resolving to a PublicDischargeKeyResponse.
+   */
   public async getPublicDischargeKey(subject: WebID): Promise<PublicDischargeKeyResponse> {
     const publicDischargeKeyLocation = retrievePublicKeyLocationFromWebId(subject);
     const requestBody:PublicKeyDischargeRequest = {subjectToRetrieveKeyFrom: subject};
@@ -79,7 +108,13 @@ export class MbacsaClient implements MbacsaClientI {
     return data;
   }
 
-
+  /**
+   * Delegates access to another agent using a macaroon.
+   * @param serializedMacaroon The serialized root macaroon to be delegated.
+   * @param delegatee The WebID of the agent to whom access is being delegated.
+   * @param pdk The public discharge key (RSA_JWK) of the delegatee.
+   * @returns A promise resolving to the attenuated serialized root macaroon macaroon.
+   */
   public async delegateAccessTo(serializedMacaroon: string, delegatee: WebID, pdk:RSA_JWK): Promise<string> {
 
     // Deserialize macaroon
@@ -108,6 +143,13 @@ export class MbacsaClient implements MbacsaClientI {
     return attenuatedMacaroon.getMacaroon().serialize();
   }
 
+  /**
+   * Revokes a previously issued delegation token.
+   * @param revoker The WebID of the entity revoking the access.
+   * @param revokee The WebID of the entity whose access is being revoked.
+   * @param serializedMacaroons An array of serialized macaroons that are being revoked.
+   * @returns A promise resolving to a RevocationResponse.
+   */
   public async revokeDelegationToken(revoker:WebID, revokee:WebID, serializedMacaroons:Array<string>): Promise<any> {
     // Retrieve revocationLocation from root macaroon
     const rootMacaroon = macaroons.MacaroonsDeSerializer.deserialize(serializedMacaroons[0]);
@@ -130,6 +172,12 @@ export class MbacsaClient implements MbacsaClientI {
     return data;
   }
 
+  /**
+   * Accesses a resource using a delegation token.
+   * @param resourceURI The URI of the resource to access.
+   * @param serializedMacaroons An array of serialized macaroons that grant access to the resource.
+   * @returns A promise resolving to the response from accessing the resource.
+   */
   public async accessWithDelegationToken(resourceURI: string, serializedMacaroons: Array<string>): Promise<any> {
 
     try {
@@ -156,50 +204,23 @@ export class MbacsaClient implements MbacsaClientI {
   
   }
   
-  // public async getResource(resourceURI: string, serializedMacaroons: string[]): Promise<any> {
-  //   // Prepare discharge macaroons for request
-  //   const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
 
-  //   // Make request
-  //   const resource = await fetch(resourceURI,{
-  //     method: 'GET',
-  //     headers: {
-  //       'content-type': "application/json",
-  //       'authorization': 'macaroon',
-  //       'macaroon': preparedSerializedMacaroons.toString()
-  //     },
-  //   })
-  //   return await resource.text();
-  // }
-
-  // public async appendToResource(resourceURI: string, serializedMacaroons: string[], data: object) : Promise<any> {
-  //   // Prepare discharge macaroons for request
-  //   const preparedSerializedMacaroons = this.prepareMacaroonsForRequest(serializedMacaroons);
-  //   // Make request
-  //   const response = await fetch(resourceURI,{
-  //     method: 'PUT',
-  //     headers: {
-  //       'content-type': "application/json",
-  //       'authorization': 'macaroon',
-  //       'macaroon': preparedSerializedMacaroons.toString()
-  //     },
-  //     data: JSON.stringify(data)
-  //   })
-  //   return await response.text();
-  // }
-
-
-  public async retrieveDPoPToken(podServerUri:string, email:string, password:string):Promise<DPoPInfo> {
-    const credentials = await CredentialsGenerator.generateCredentials(podServerUri,email, password);
-    const dpopInfo = await DPoPGenerator.generateDPoPAccessToken(podServerUri,credentials);
-    return dpopInfo;
-  }
-
+  /**
+   * Inspects a serialized macaroon and returns its inspection string.
+   * @param serializedMacaroon The serialized macaroon to inspect.
+   * @returns The inspection string of the macaroon.
+   */
   public static inspectSerializedMacaroon(serializedMacaroon:string):string {
     const macaroon = macaroons.MacaroonsDeSerializer.deserialize(serializedMacaroon);
     return macaroon.inspect()
   }
 
+
+  /**
+   * Prepares an array of serialized macaroons for a request by modifying them for discharge.
+   * @param serializedMacaroons Array of serialized macaroons to prepare.
+   * @returns An array of prepared serialized macaroons.
+   */
   private prepareMacaroonsForRequest(serializedMacaroons: Array<string>):Array<string>{
     const [serializedRootMacaroon,...serializedDischargeMacaroons] = serializedMacaroons;
     const rootMacaroon = macaroons.MacaroonsDeSerializer.deserialize(serializedRootMacaroon);
